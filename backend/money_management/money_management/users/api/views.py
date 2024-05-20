@@ -5,11 +5,15 @@ from rest_framework.mixins import RetrieveModelMixin
 from rest_framework.mixins import UpdateModelMixin
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, authentication_classes, permission_classes
 
-from money_management.users.models import User
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.authentication import SessionAuthentication, BasicAuthentication
 
+from money_management.users.models import User, Expense, Transaction, ExpenseAnalytics
+from django.http import Http404
 from .serializers import UserSerializer
+
 
 
 class UserViewSet(RetrieveModelMixin, ListModelMixin, UpdateModelMixin, GenericViewSet):
@@ -25,39 +29,54 @@ class UserViewSet(RetrieveModelMixin, ListModelMixin, UpdateModelMixin, GenericV
     def me(self, request):
         serializer = UserSerializer(request.user, context={"request": request})
         return Response(status=status.HTTP_200_OK, data=serializer.data)
+    
 
 @api_view(['GET'])
 def get_data(request):
+    user = request.user
+
+    # Пример данных
+    total_amount = {'value': 10000, 'change': '+20%'}
+    apple_stock = {'value': 346, 'change': '+33%'}
+    btc_price = {'value': 61524, 'change': '-8%'}
+
+    top_expenses = Expense.objects.filter(user=user).values('category', 'amount')
+    transactions = Transaction.objects.filter(user=user).values('category', 'balance', 'amount', 'percentage')
+    expense_analytics = ExpenseAnalytics.objects.filter(user=user).values('month', 'amount')
+
     data = {
-        'totalAmount': {'value': 10000, 'change': '+20%'},
-        'appleStock': {'value': 346, 'change': '+33%'},
-        'btcPrice': {'value': 61524, 'change': '-8%'},
-        'topExpenses': [
-            {'category': 'Авто', 'amount': 2000},
-            {'category': 'Дом', 'amount': 1100},
-            {'category': 'Кафе и рестораны', 'amount': 1000},
-            {'category': 'Такси', 'amount': 200},
-        ],
-        'transactions': [
-            {'category': 'Кафе и рестораны', 'balance': 5700, 'amount': 1000, 'percentage': '-10%'},
-            {'category': 'Такси', 'balance': 6700, 'amount': 200, 'percentage': '-2%'},
-            {'category': 'Дом', 'balance': 6900, 'amount': 1100, 'percentage': '-11%'},
-            {'category': 'Авто', 'balance': 8000, 'amount': 2000, 'percentage': '-20%'},
-            {'category': 'Зарплата', 'balance': 10000, 'amount': 10000, 'percentage': '+'},
-        ],
-        'expenseAnalytics': [
-            {'month': 'Jan', 'amount': 30000},
-            {'month': 'Feb', 'amount': 40000},
-            {'month': 'Mar', 'amount': 35000},
-            {'month': 'Apr', 'amount': 45000},
-            {'month': 'May', 'amount': 50000},
-            {'month': 'Jun', 'amount': 55000},
-            {'month': 'Jul', 'amount': 60000},
-            {'month': 'Aug', 'amount': 65000},
-            {'month': 'Sep', 'amount': 70000},
-            {'month': 'Oct', 'amount': 75000},
-            {'month': 'Nov', 'amount': 80000},
-            {'month': 'Dec', 'amount': 85000},
-        ]
+        'totalAmount': total_amount,
+        'appleStock': apple_stock,
+        'btcPrice': btc_price,
+        'topExpenses': list(top_expenses),
+        'transactions': list(transactions),
+        'expenseAnalytics': list(expense_analytics),
+    }
+    return Response(data)
+
+
+@api_view(['GET'])
+def get_data_for_user(request, user_id):
+    try:
+        user = User.objects.get(pk=user_id)
+    except User.DoesNotExist:
+        raise Http404("User not found")
+
+    # Пример данных
+    total_amount = {'value': 10000, 'change': '+20%'}
+    apple_stock = {'value': 346, 'change': '+33%'}
+    btc_price = {'value': 61524, 'change': '-8%'}
+
+    top_expenses = Expense.objects.filter(user=user).values('category', 'amount')
+    transactions = Transaction.objects.filter(user=user).values('category', 'balance', 'amount', 'percentage')
+    expense_analytics = ExpenseAnalytics.objects.filter(user=user).values('month', 'amount')
+
+    data = {
+        'totalAmount': total_amount,
+        'appleStock': apple_stock,
+        'btcPrice': btc_price,
+        'topExpenses': list(top_expenses),
+        'transactions': list(transactions),
+        'expenseAnalytics': list(expense_analytics),
     }
     return Response(data)

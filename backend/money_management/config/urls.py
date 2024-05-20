@@ -10,7 +10,7 @@ from django.views.generic import TemplateView
 from drf_spectacular.views import SpectacularAPIView
 from drf_spectacular.views import SpectacularSwaggerView
 from rest_framework.authtoken.views import obtain_auth_token
-from money_management.users.api.views import get_data
+from money_management.users.api.views import get_data, get_data_for_user
 
 urlpatterns = [
     path("", TemplateView.as_view(template_name="pages/home.html"), name="home"),
@@ -28,6 +28,7 @@ urlpatterns = [
     # ...
     # Media files
     path('api/data/', get_data, name='get_data'),
+    path('api/data/<int:user_id>/', get_data_for_user, name='get_data_for_user'),
     *static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT),
 ]
 if settings.DEBUG:
